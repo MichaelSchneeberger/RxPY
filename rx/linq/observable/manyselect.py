@@ -9,12 +9,12 @@ from rx.internal import extensionmethod
 
 class ChainObservable(ObservableBase):
 
-    def _subscribe_core(self, observer):
+    def _subscribe_core(self, observer, scheduler):
         g = CompositeDisposable()
 
         def action(scheduler, state):
             observer.on_next(self.head)
-            g.add(self.tail.merge_observable().subscribe(observer))
+            g.add(self.tail.merge_observable().unsafe_subscribe(observer, scheduler=scheduler))
 
         g.add(current_thread_scheduler.schedule(action))
         return g

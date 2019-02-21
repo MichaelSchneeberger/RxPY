@@ -16,8 +16,8 @@ def _flat_map(source, selector):
     return source.map(projection).merge_all()
 
 
-@extensionmethod(Observable, alias="flat_map")
-def select_many(self, selector, result_selector=None):
+@extensionmethod(Observable, alias="select_many")
+def flat_map(self, selector, result_selector=None):
     """One of the Following:
     Projects each element of an observable sequence to an observable
     sequence and merges the resulting observable sequences into one

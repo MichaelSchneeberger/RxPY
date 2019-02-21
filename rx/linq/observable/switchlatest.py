@@ -1,3 +1,4 @@
+from rx.concurrency import CurrentThreadScheduler
 from rx.core import Observable, AnonymousObservable
 from rx.disposables import CompositeDisposable, \
     SingleAssignmentDisposable, SerialDisposable
@@ -18,7 +19,7 @@ def switch_latest(self):
 
     sources = self
 
-    def subscribe(observer):
+    def subscribe(observer, scheduler):
         has_latest = [False]
         inner_subscription = SerialDisposable()
         is_stopped = [False]
@@ -49,13 +50,13 @@ def switch_latest(self):
                     if is_stopped[0]:
                         observer.on_completed()
 
-            d.disposable = inner_source.subscribe(on_next, on_error, on_completed)
+            d.disposable = inner_source.subscribe(on_next, on_error, on_completed, scheduler=scheduler)
 
         def on_completed():
             is_stopped[0] = True
             if not has_latest[0]:
                 observer.on_completed()
 
-        subscription = sources.subscribe(on_next, observer.on_error, on_completed)
+        subscription = sources.unsafe_subscribe(on_next, observer.on_error, on_completed, scheduler=scheduler)
         return CompositeDisposable(subscription, inner_subscription)
     return AnonymousObservable(subscribe)

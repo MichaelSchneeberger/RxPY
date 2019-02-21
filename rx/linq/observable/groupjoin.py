@@ -1,4 +1,5 @@
 import logging
+import sys
 from collections import OrderedDict
 
 from rx import AnonymousObservable, Observable
@@ -38,7 +39,7 @@ def group_join(self, right, left_duration_selector, right_duration_selector,
 
     left = self
 
-    def subscribe(observer):
+    def subscribe(observer, scheduler):
         nothing = lambda _: None
         group = CompositeDisposable()
         r = RefCountDisposable(group)
@@ -58,11 +59,13 @@ def group_join(self, right, left_duration_selector, right_duration_selector,
             try:
                 result = result_selector(value, add_ref(s, r))
             except Exception as e:
+                exc_tuple = sys.exc_info()
+
                 log.error("*** Exception: %s" % e)
                 for left_value in left_map.values():
-                    left_value.on_error(e)
+                    left_value.on_error(exc_tuple)
 
-                observer.on_error(e)
+                observer.on_error(exc_tuple)
                 return
 
             observer.on_next(result)
@@ -86,7 +89,8 @@ def group_join(self, right, left_duration_selector, right_duration_selector,
                 for left_value in left_map.values():
                     left_value.on_error(e)
 
-                observer.on_error(e)
+                exc_tuple = sys.exc_info()
+                observer.on_error(exc_tuple)
                 return
 
             def on_error(e):
@@ -98,7 +102,7 @@ def group_join(self, right, left_duration_selector, right_duration_selector,
             md.disposable = duration.take(1).subscribe(
                 nothing,
                 on_error,
-                expire)
+                expire, scheduler=scheduler)
 
         def on_error_left(e):
             for left_value in left_map.values():
@@ -106,8 +110,7 @@ def group_join(self, right, left_duration_selector, right_duration_selector,
 
             observer.on_error(e)
 
-        group.add(left.subscribe(on_next_left, on_error_left,
-                  observer.on_completed))
+        group.add(left.unsafe_subscribe(on_next_left, on_error_left, observer.on_completed, scheduler=scheduler))
 
         def on_next_right(value):
             with self.lock:
@@ -125,10 +128,12 @@ def group_join(self, right, left_duration_selector, right_duration_selector,
             try:
                 duration = right_duration_selector(value)
             except Exception as e:
-                for left_value in left_map.values():
-                    left_value.on_error(e)
+                exc_tuple = sys.exc_info()
 
-                observer.on_error(e)
+                for left_value in left_map.values():
+                    left_value.on_error(exc_tuple)
+
+                observer.on_error(exc_tuple)
                 return
 
             def on_error(e):
@@ -141,7 +146,7 @@ def group_join(self, right, left_duration_selector, right_duration_selector,
             md.disposable = duration.take(1).subscribe(
                 nothing,
                 on_error,
-                expire)
+                expire, scheduler=scheduler)
 
             with self.lock:
                 for left_value in left_map.values():
@@ -153,6 +158,6 @@ def group_join(self, right, left_duration_selector, right_duration_selector,
 
             observer.on_error(e)
 
-        group.add(right.subscribe(on_next_right, on_error_right))
+        group.add(right.unsafe_subscribe(on_next_right, on_error_right, scheduler=scheduler))
         return r
     return AnonymousObservable(subscribe)

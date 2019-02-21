@@ -49,25 +49,36 @@ def adapt_call(func):
         return func(arg1, arg2)
 
     def func_wrapped(*args, **kw):
-        if cached[0]:
-            return cached[0](*args, **kw)
+        # if cached[0]:
+        #     return cached[0](*args, **kw)
 
-        for fn in (func1, func2):
-            try:
-                ret = fn(*args, **kw)
-            except TypeError:
-                # Preserve the original traceback if there was a TypeError raised
-                # in the body of the adapted function.
-                if _should_reraise_TypeError():
-                    raise
-                else:
-                    continue
-            else:
-                cached[0] = fn
-                return ret
-        else:
-            # We were unable to call the function successfully.
-            raise TypeError("Couldn't adapt function {}".format(func.__name__))
+        ret = func(*args, **kw)
+        return ret
+
+        # try:
+        #     ret = fn(*args, **kw)
+        # except:
+        #     import traceback
+        #     import inspect
+        #     print(fn.__name__)
+        #     print(inspect.getfullargspec(fn))
+        #     traceback.print_exc()
+        # for fn in (func1, func2):
+        #     try:
+        #         ret = fn(*args, **kw)
+        #     except TypeError:
+        #         # Preserve the original traceback if there was a TypeError raised
+        #         # in the body of the adapted function.
+        #         if _should_reraise_TypeError():
+        #             raise
+        #         else:
+        #             continue
+        #     else:
+        #         cached[0] = fn
+        #         return ret
+        # else:
+        #     # We were unable to call the function successfully.
+        #     raise TypeError("Couldn't adapt function {}".format(func.__name__))
 
     return func_wrapped
 

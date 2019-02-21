@@ -5,7 +5,7 @@ from .elementatordefault import _element_at_or_default
 
 
 @extensionmethod(Observable)
-def element_at(self, index):
+def element_at(self, index, raise_exception_func=None):
     """Returns the element at a specified index in a sequence.
 
     Example:
@@ -19,4 +19,4 @@ def element_at(self, index):
     :rtype: Observable
     """
 
-    return _element_at_or_default(self, index, False)
+    return _element_at_or_default(self, index, False, raise_exception_func=raise_exception_func)

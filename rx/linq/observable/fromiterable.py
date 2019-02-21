@@ -1,5 +1,5 @@
 from rx import config
-from rx.core import Observable, AnonymousObservable
+from rx.core import Observable, AnonymousObservable, Disposable
 from rx.concurrency import current_thread_scheduler
 from rx.disposables import MultipleAssignmentDisposable
 from rx.internal import extensionclassmethod
@@ -23,24 +23,55 @@ def from_iterable(cls, iterable, scheduler=None):
     :rtype: Observable
     """
 
-    scheduler = scheduler or current_thread_scheduler
     lock = config["concurrency"].RLock()
 
-    def subscribe(observer):
-        sd = MultipleAssignmentDisposable()
-        iterator = iter(iterable)
+    if scheduler is None:
+        def subscribe(observer, subscribe_scheduler):
+            sd = MultipleAssignmentDisposable()
+            iterator = iter(iterable)
 
-        def action(scheduler, state=None):
-            try:
-                with lock:
-                    item = next(iterator)
+            def action(_, __):
+                break_loop = [False]
 
-            except StopIteration:
-                observer.on_completed()
-            else:
-                observer.on_next(item)
-                sd.disposable = scheduler.schedule(action)
+                def dispose_loop():
+                    break_loop[0] = True
 
-        sd.disposable = scheduler.schedule(action)
-        return sd
-    return AnonymousObservable(subscribe)
+                sd.disposable = Disposable.create(dispose_loop)
+
+                while True:
+                    if break_loop[0]:
+                        break
+                    try:
+                        with lock:
+                            item = next(iterator)
+                    except StopIteration:
+                        observer.on_completed()
+                        break
+                    else:
+                        observer.on_next(item)
+
+            sd.disposable = subscribe_scheduler.schedule(action)
+            return sd
+
+        return AnonymousObservable(subscribe)
+    else:
+        def subscribe(observer, subscribe_scheduler):
+            sd = MultipleAssignmentDisposable()
+            iterator = iter(iterable)
+
+            def action(_, __):
+                def inner_action(_, __):
+                    try:
+                        with lock:
+                            item = next(iterator)
+
+                    except StopIteration:
+                        observer.on_completed()
+                    else:
+                        observer.on_next(item)
+                        sd.disposable = scheduler.schedule(inner_action)
+                return scheduler.schedule(inner_action)
+
+            sd.disposable = subscribe_scheduler.schedule(action)
+            return sd
+        return AnonymousObservable(subscribe)

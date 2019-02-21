@@ -71,7 +71,7 @@ def window_with_count(self, count, skip=None):
                 q.pop(0).on_completed()
             observer.on_completed()
 
-        m.disposable = source.subscribe(on_next, on_error, on_completed)
+        m.disposable = source.unsafe_subscribe(on_next, on_error, on_completed, scheduler=scheduler)
         return refCountDisposable
     return AnonymousObservable(subscribe)
 

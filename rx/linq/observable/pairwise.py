@@ -16,7 +16,7 @@ def pairwise(self):
 
     source = self
 
-    def subscribe(observer):
+    def subscribe(observer, scheduler):
         has_previous = [False]
         previous = [None]
 
@@ -34,5 +34,5 @@ def pairwise(self):
             if pair:
                 observer.on_next(pair)
 
-        return source.subscribe(on_next, observer.on_error, observer.on_completed)
+        return source.subscribe(on_next, observer.on_error, observer.on_completed, scheduler=scheduler)
     return AnonymousObservable(subscribe)

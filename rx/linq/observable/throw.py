@@ -1,3 +1,5 @@
+import sys
+
 from rx.core import Observable, AnonymousObservable
 
 from rx.concurrency import immediate_scheduler
@@ -24,11 +26,26 @@ def throw(cls, exception, scheduler=None):
 
     scheduler = scheduler or immediate_scheduler
 
-    exception = exception if isinstance(exception, Exception) else Exception(exception)
+    if isinstance(exception, str):
+        try:
+            raise Exception(exception)
+        except:
+            exc_info = sys.exc_info()
 
-    def subscribe(observer):
-        def action(scheduler, state):
-            observer.on_error(exception)
+        exception = exc_info
+    elif isinstance(exception, tuple):
+        assert len(exception) == 3, 'tuple "{}" needs to be of length 3'.format(exception)
+        assert isinstance(exception[1], Exception), '2nd argument "{}" needs to be of type Exception'.format(exception[1])
+    elif isinstance(exception, Exception):
+        exception = type(exception), exception, exception.__traceback__
+    else:
+        raise Exception('illegal format for exception "{}"'.format(exception))
 
-        return scheduler.schedule(action)
+    def subscribe(observer, subscribe_scheduler):
+        def action(_, __):
+            def inner_action(_, __):
+                observer.on_error(exception)
+
+            return scheduler.schedule(inner_action)
+        return subscribe_scheduler.schedule(action)
     return AnonymousObservable(subscribe)

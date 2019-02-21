@@ -25,7 +25,7 @@ def throttle_first(self, window_duration, scheduler=None):
 
     source = self
 
-    def subscribe(observer):
+    def subscribe(observer, subscribe_scheduler):
         last_on_next = [0]
 
         def on_next(x):
@@ -39,5 +39,5 @@ def throttle_first(self, window_duration, scheduler=None):
             if emit:
                 observer.on_next(x)
 
-        return source.subscribe(on_next, observer.on_error, observer.on_completed)
+        return source.unsafe_subscribe(on_next, observer.on_error, observer.on_completed, scheduler=subscribe_scheduler)
     return AnonymousObservable(subscribe)

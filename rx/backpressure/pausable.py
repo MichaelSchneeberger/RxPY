@@ -29,7 +29,7 @@ class PausableObservable(ObservableBase):
                 connection[0].dispose()
                 connection[0] = Disposable.empty()
 
-        pausable = self.pauser.distinct_until_changed().subscribe(on_next)
+        pausable = self.pauser.distinct_until_changed().unsafe_subscribe(on_next, scheduler=scheduler)
         return CompositeDisposable(subscription, connection[0], pausable)
 
     def pause(self):

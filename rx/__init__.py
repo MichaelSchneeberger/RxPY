@@ -11,7 +11,6 @@ try:
 except ImportError:
     import rx.internal.concurrency as threading
 
-# select default future
 try:
     from asyncio import Future
 except ImportError:

@@ -18,7 +18,7 @@ class Timestamp(object):
 def observable_delay_timespan(source, duetime, scheduler):
     duetime = scheduler.to_timedelta(duetime)
 
-    def subscribe(observer):
+    def subscribe(observer, subscribe_scheduler):
         cancelable = SerialDisposable()
         exception = [None]
         active = [False]
@@ -85,7 +85,7 @@ def observable_delay_timespan(source, duetime, scheduler):
                             mad.disposable = scheduler.schedule_relative(recurse_duetime, action)
 
                     mad.disposable = scheduler.schedule_relative(duetime, action)
-        subscription = source.materialize().timestamp(scheduler).subscribe(on_next)
+        subscription = source.materialize().timestamp(scheduler).unsafe_subscribe(on_next, scheduler=subscribe_scheduler)
         return CompositeDisposable(subscription, cancelable)
     return AnonymousObservable(subscribe)
 

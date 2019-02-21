@@ -1,4 +1,7 @@
-from rx.core import Observable, AnonymousObservable
+import sys
+
+from rx.core import Observable, AnonymousObservable, Disposable
+from rx.disposables import CompositeDisposable, SingleAssignmentDisposable
 from rx.internal.utils import is_future
 from rx.internal import extensionclassmethod
 
@@ -15,16 +18,21 @@ def from_future(cls, future):
     Returns {Observable} An Observable sequence which wraps the existing
     future success and failure.
     """
+    single_assignment_disposable = SingleAssignmentDisposable()
 
-    def subscribe(observer):
+    def subscribe(observer, scheduler):
         def done(future):
-            try:
-                value = future.result()
-            except Exception as ex:
-                observer.on_error(ex)
-            else:
-                observer.on_next(value)
-                observer.on_completed()
+            def action(_, __):
+                try:
+                    value = future.result()
+                except Exception as ex:
+                    exc_tuple = sys.exc_info()
+                    observer.on_error(exc_tuple)
+                else:
+                    observer.on_next(value)
+                    observer.on_completed()
+
+            single_assignment_disposable.disposable = scheduler.schedule(action)
 
         future.add_done_callback(done)
 
@@ -32,6 +40,6 @@ def from_future(cls, future):
             if future and future.cancel:
                 future.cancel()
 
-        return dispose
+        return CompositeDisposable(Disposable.create(dispose), single_assignment_disposable)
 
     return AnonymousObservable(subscribe) if is_future(future) else future

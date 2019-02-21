@@ -1,3 +1,5 @@
+import sys
+
 from rx import AnonymousObservable, Observable
 from rx.internal.basic import default_sub_comparer
 from rx.internal import extensionmethod
@@ -12,7 +14,8 @@ def extrema_by(source, key_selector, comparer):
             try:
                 key = key_selector(x)
             except Exception as ex:
-                observer.on_error(ex)
+                exc_tuple = sys.exc_info()
+                observer.on_error(exc_tuple)
                 return
 
             comparison = 0;
@@ -24,7 +27,8 @@ def extrema_by(source, key_selector, comparer):
                 try:
                     comparison = comparer(key, last_key[0])
                 except Exception as ex1:
-                    observer.on_error(ex1)
+                    exc_tuple = sys.exc_info()
+                    observer.on_error(exc_tuple)
                     return
 
             if comparison > 0:

@@ -18,10 +18,13 @@ def empty(cls, scheduler=None):
 
     scheduler = scheduler or immediate_scheduler
 
-    def subscribe(observer):
-        def action(scheduler, state):
-            observer.on_completed()
+    def subscribe(observer, subscribe_scheduler):
+        def action(_, __):
+            def inner_action(_, __):
+                observer.on_completed()
 
-        return scheduler.schedule(action)
+            return scheduler.schedule(inner_action)
+        return subscribe_scheduler.schedule(action)
+
     return AnonymousObservable(subscribe)
 

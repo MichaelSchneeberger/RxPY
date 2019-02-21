@@ -13,6 +13,7 @@ Other implementations of transducers in Python are:
 
  - https://github.com/cognitect-labs/transducers-python
 """
+import sys
 
 from rx.core import Observable, AnonymousObservable
 from rx.internal import extensionmethod
@@ -58,7 +59,8 @@ def transduce(self, transducer):
             try:
                 xform.step(observer, v)
             except Exception as e:
-                observer.on_error(e)
+                exc_tuple = sys.exc_info()
+                observer.on_error(exc_tuple)
 
         def on_completed():
             xform.complete(observer)

@@ -1,9 +1,10 @@
 from abc import ABCMeta, abstractmethod
+from typing import Generic
+
+from rx.core.typing import A
 
 
-class Observer(object):
-    __metaclass__ = ABCMeta
-
+class Observer(Generic[A], metaclass=ABCMeta):
     @abstractmethod
     def on_next(self, value):
         return NotImplemented

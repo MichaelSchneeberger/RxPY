@@ -1,3 +1,5 @@
+import sys
+
 from rx.core import Observer, Observable, AnonymousObservable, Disposable
 from rx.internal import extensionmethod
 from rx.disposables import CompositeDisposable
@@ -39,7 +41,7 @@ def do_action(self, on_next=None, on_error=None, on_completed=None,
         on_completed = on_next.on_completed
         on_next = on_next.on_next
 
-    def subscribe(observer):
+    def subscribe(observer, scheduler):
         def _on_next(x):
             if not on_next:
                 observer.on_next(x)
@@ -47,7 +49,8 @@ def do_action(self, on_next=None, on_error=None, on_completed=None,
                 try:
                     on_next(x)
                 except Exception as e:
-                    observer.on_error(e)
+                    exc_tuple = sys.exc_info()
+                    observer.on_error(exc_tuple)
 
                 observer.on_next(x)
 
@@ -58,7 +61,8 @@ def do_action(self, on_next=None, on_error=None, on_completed=None,
                 try:
                     on_error(exception)
                 except Exception as e:
-                    observer.on_error(e)
+                    exc_tuple = sys.exc_info()
+                    observer.on_error(exc_tuple)
 
                 observer.on_error(exception)
 
@@ -69,11 +73,12 @@ def do_action(self, on_next=None, on_error=None, on_completed=None,
                 try:
                     on_completed()
                 except Exception as e:
-                    observer.on_error(e)
+                    exc_tuple = sys.exc_info()
+                    observer.on_error(exc_tuple)
 
                 observer.on_completed()
 
-        return source.subscribe(_on_next, _on_error, _on_completed)
+        return source.unsafe_subscribe(_on_next, _on_error, _on_completed, scheduler=scheduler)
 
     return AnonymousObservable(subscribe)
 
@@ -93,7 +98,8 @@ def do_after_next(self, after_next):
                 observer.on_next(value)
                 after_next(value)
             except Exception as e:
-                observer.on_error(e)
+                exc_tuple = sys.exc_info()
+                observer.on_error(exc_tuple)
 
         return self.subscribe(on_next, observer.on_error, observer.on_completed)
 
@@ -152,7 +158,8 @@ def do_on_terminate(self, on_terminate):
             try:
                 on_terminate()
             except Exception as err:
-                observer.on_error(err)
+                exc_tuple = sys.exc_info()
+                observer.on_error(exc_tuple)
             else:
                 observer.on_completed()
 
@@ -160,7 +167,8 @@ def do_on_terminate(self, on_terminate):
             try:
                 on_terminate()
             except Exception as err:
-                observer.on_error(err)
+                exc_tuple = sys.exc_info()
+                observer.on_error(exc_tuple)
             else:
                 observer.on_error(exception)
 
@@ -184,14 +192,16 @@ def do_after_terminate(self, after_terminate):
             try:
                 after_terminate()
             except Exception as err:
-                observer.on_error(err)
+                exc_tuple = sys.exc_info()
+                observer.on_error(exc_tuple)
 
         def on_error(exception):
             observer.on_error(exception)
             try:
                 after_terminate()
             except Exception as err:
-                observer.on_error(err)
+                exc_tuple = sys.exc_info()
+                observer.on_error(exc_tuple)
 
         return self.subscribe(observer.on_next, on_error, on_completed)
 
@@ -227,7 +237,8 @@ def do_finally(self, finally_action):
                     finally_action()
                     was_invoked[0] = True
             except Exception as err:
-                observer.on_error(err)
+                exc_tuple = sys.exc_info()
+                observer.on_error(exc_tuple)
 
         def on_error(exception):
             observer.on_error(exception)
@@ -236,7 +247,8 @@ def do_finally(self, finally_action):
                     finally_action()
                     was_invoked[0] = True
             except Exception as err:
-                observer.on_error(err)
+                exc_tuple = sys.exc_info()
+                observer.on_error(exc_tuple)
 
         composite_disposable = CompositeDisposable()
         composite_disposable.add(OnDispose(was_invoked))

@@ -1,3 +1,5 @@
+import sys
+
 from rx.core import Observable, AnonymousObservable
 from rx.disposables import CompositeDisposable, \
     SingleAssignmentDisposable, SerialDisposable
@@ -31,10 +33,10 @@ def timeout_with_selector(self, first_timeout=None,
     """
 
     first_timeout = first_timeout or Observable.never()
-    other = other or Observable.throw_exception(Exception('Timeout'))
+    other = other or Observable.throw_exception('Timeout')
     source = self
 
-    def subscribe(observer):
+    def subscribe(observer, scheduler):
         subscription = SerialDisposable()
         timer = SerialDisposable()
         original = SingleAssignmentDisposable()
@@ -67,7 +69,7 @@ def timeout_with_selector(self, first_timeout=None,
                 if timer_wins():
                     subscription.disposable = other.subscribe(observer)
 
-            d.disposable = timeout.subscribe(on_next, on_error, on_completed)
+            d.disposable = timeout.unsafe_subscribe(on_next, on_error, on_completed, scheduler=scheduler)
 
         set_timer(first_timeout)
 
@@ -85,7 +87,8 @@ def timeout_with_selector(self, first_timeout=None,
                 try:
                     timeout = timeout_duration_selector(x)
                 except Exception as e:
-                    observer.on_error(e)
+                    exc_tuple = sys.exc_info()
+                    observer.on_error(exc_tuple)
                     return
 
                 set_timer(timeout)
@@ -98,6 +101,6 @@ def timeout_with_selector(self, first_timeout=None,
             if observer_wins():
                 observer.on_completed()
 
-        original.disposable = source.subscribe(on_next, on_error, on_completed)
+        original.disposable = source.unsafe_subscribe(on_next, on_error, on_completed, scheduler=scheduler)
         return CompositeDisposable(subscription, timer)
     return AnonymousObservable(subscribe)

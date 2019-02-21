@@ -1,3 +1,5 @@
+import sys
+
 from rx.core import Observable, AnonymousObservable
 from rx.internal import extensionclassmethod
 
@@ -19,12 +21,13 @@ def defer(cls, observable_factory):
     :rtype: Observable
     """
 
-    def subscribe(observer):
+    def subscribe(observer, scheduler):
         try:
             result = observable_factory()
-        except Exception as ex:
-            return Observable.throw_exception(ex).subscribe(observer)
+        except Exception:
+            exc_info = sys.exc_info()
+            return Observable.throw_exception(exc_info).subscribe(observer)
 
         result = Observable.from_future(result)
-        return result.subscribe(observer)
+        return result.unsafe_subscribe(observer, scheduler=scheduler)
     return AnonymousObservable(subscribe)

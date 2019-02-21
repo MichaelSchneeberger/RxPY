@@ -1,10 +1,8 @@
+import sys
+
 from rx.core import Observable, AnonymousObservable
 from rx.disposables import CompositeDisposable, SingleAssignmentDisposable
 from rx.internal import extensionmethod, extensionclassmethod
-
-
-def listify_args(*a):
-    return list(a)
 
 
 @extensionmethod(Observable, instancemethod=True)
@@ -59,7 +57,7 @@ def with_latest_from(cls, *args):
 
     NO_VALUE = object()
 
-    def subscribe(observer):
+    def subscribe(observer, scheduler):
 
         def subscribe_all(parent, *children):
 
@@ -70,8 +68,8 @@ def with_latest_from(cls, *args):
                 def on_next(value):
                     with parent.lock:
                         values[i] = value
-                subscription.disposable = child.subscribe(
-                    on_next, observer.on_error)
+                subscription.disposable = child.unsafe_subscribe(
+                    on_next, observer.on_error, scheduler=scheduler)
                 return subscription
 
             parent_subscription = SingleAssignmentDisposable()
@@ -81,15 +79,18 @@ def with_latest_from(cls, *args):
                         try:
                             result = result_selector(value, *values)
                         except Exception as error:
-                            observer.on_error(error)
+                            exc_tuple = sys.exc_info()
+                            observer.on_error(exc_tuple)
                         else:
                             observer.on_next(result)
-            parent_subscription.disposable = parent.subscribe(
-                on_next, observer.on_error, observer.on_completed)
+            parent_subscription.disposable = parent.unsafe_subscribe(
+                on_next, observer.on_error, observer.on_completed, scheduler=scheduler)
+
+            def listify_args(*a):
+                return list(a)
 
             return listify_args(
-                parent_subscription,
-                *(subscribe_child(*a) for a in enumerate(children))
+                parent_subscription, *(subscribe_child(*a) for a in enumerate(children))
             )
 
         return CompositeDisposable(subscribe_all(*observables))

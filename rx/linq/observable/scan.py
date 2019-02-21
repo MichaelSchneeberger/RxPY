@@ -27,7 +27,7 @@ def scan(self, accumulator, seed=None):
         has_accumulation = [False]
         accumulation = [None]
 
-        def projection(x):
+        def projection(x, _):
             if has_accumulation[0]:
                 accumulation[0] = accumulator(accumulation[0], x)
             else:

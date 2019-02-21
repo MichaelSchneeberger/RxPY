@@ -21,4 +21,4 @@ def max(self, comparer=None):
     with the maximum element in the source sequence.
     """
 
-    return self.max_by(identity, comparer).map(lambda x: first_only(x))
+    return self.max_by(identity, comparer).map(lambda x, _: first_only(x))

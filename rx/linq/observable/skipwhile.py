@@ -1,3 +1,5 @@
+import sys
+
 from rx import Observable, AnonymousObservable
 from rx.internal.utils import adapt_call
 from rx.internal import extensionmethod
@@ -24,7 +26,7 @@ def skip_while(self, predicate):
     predicate = adapt_call(predicate)
     source = self
 
-    def subscribe(observer):
+    def subscribe(observer, scheduler):
         i, running = [0], [False]
 
         def on_next(value):
@@ -32,7 +34,8 @@ def skip_while(self, predicate):
                 try:
                     running[0] = not predicate(value, i[0])
                 except Exception as exn:
-                    observer.on_error(exn)
+                    exc_tuple = sys.exc_info()
+                    observer.on_error(exc_tuple)
                     return
                 else:
                     i[0] += 1
@@ -40,5 +43,5 @@ def skip_while(self, predicate):
             if running[0]:
                 observer.on_next(value)
 
-        return source.subscribe(on_next, observer.on_error, observer.on_completed)
+        return source.unsafe_subscribe(on_next, observer.on_error, observer.on_completed, scheduler=scheduler)
     return AnonymousObservable(subscribe)

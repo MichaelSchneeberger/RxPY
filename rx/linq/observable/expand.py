@@ -1,3 +1,5 @@
+import sys
+
 from rx.core import Observable, AnonymousObservable
 
 from rx.disposables import SerialDisposable, CompositeDisposable, \
@@ -53,7 +55,8 @@ def expand(self, selector, scheduler=None):
                     try:
                         result = selector(x)
                     except Exception as ex:
-                        observer.on_error(ex)
+                        exc_tuple = sys.exc_info()
+                        observer.on_error(exc_tuple)
 
                     q.append(result)
                     active_count[0] += 1

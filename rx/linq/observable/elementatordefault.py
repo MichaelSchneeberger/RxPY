@@ -1,14 +1,16 @@
+import sys
+
 from rx import Observable, AnonymousObservable
 from rx.internal.exceptions import ArgumentOutOfRangeException
 from rx.internal import extensionmethod
 
 
 def _element_at_or_default(source, index, has_default=False,
-                           default_value=None):
+                           default_value=None, raise_exception_func=None):
     if index < 0:
         raise ArgumentOutOfRangeException()
 
-    def subscribe(observer):
+    def subscribe(observer, scheduler):
         i = [index]
 
         def on_next(x):
@@ -25,13 +27,24 @@ def _element_at_or_default(source, index, has_default=False,
 
         def on_completed():
             if not has_default:
-                observer.on_error(ArgumentOutOfRangeException())
+                def raise_exception():
+                    raise ArgumentOutOfRangeException()
+
+                try:
+                    if raise_exception_func is None:
+                        raise_exception()
+                    else:
+                        raise_exception_func(raise_exception)
+                except:
+                    exc_tuple = sys.exc_info()
+                    observer.on_error(exc_tuple)
             else:
                 observer.on_next(default_value)
                 observer.on_completed()
 
-        return source.subscribe(on_next, observer.on_error, on_completed)
+        return source.unsafe_subscribe(on_next, observer.on_error, on_completed, scheduler=scheduler)
     return AnonymousObservable(subscribe)
+
 
 @extensionmethod(Observable)
 def element_at_or_default(self, index, default_value=None):

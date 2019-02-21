@@ -21,4 +21,4 @@ def contains(self, value, comparer=None):
     """
 
     comparer = comparer or default_comparer
-    return self.filter(lambda v: comparer(v, value)).some()
+    return self.filter(lambda v, _: comparer(v, value)).some()

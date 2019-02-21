@@ -21,7 +21,7 @@ def skip(self, count):
 
     observable = self
 
-    def subscribe(observer):
+    def subscribe(observer, scheduler):
         remaining = [count]
 
         def on_next(value):
@@ -30,5 +30,5 @@ def skip(self, count):
             else:
                 remaining[0] -= 1
 
-        return observable.subscribe(on_next, observer.on_error, observer.on_completed)
+        return observable.unsafe_subscribe(on_next, observer.on_error, observer.on_completed, scheduler=scheduler)
     return AnonymousObservable(subscribe)

@@ -1,3 +1,5 @@
+import sys
+
 from rx.core import Observable, AnonymousObservable
 from rx.disposables import CompositeDisposable, \
     SingleAssignmentDisposable, SerialDisposable
@@ -48,7 +50,8 @@ def delay_with_selector(self, subscription_delay=None,
                 try:
                     delay = selector(x)
                 except Exception as error:
-                    observer.on_error(error)
+                    exc_tuple = sys.exc_info()
+                    observer.on_error(exc_tuple)
                     return
 
                 d = SingleAssignmentDisposable()

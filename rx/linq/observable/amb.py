@@ -16,7 +16,7 @@ def amb(self, right_source):
     left_source = self
     right_source = Observable.from_future(right_source)
 
-    def subscribe(observer):
+    def subscribe(observer, scheduler):
         choice = [None]
         left_choice = 'L'
         right_choice = 'R',
@@ -51,8 +51,8 @@ def amb(self, right_source):
             if choice[0] == left_choice:
                 observer.on_completed()
 
-        ld = left_source.subscribe(on_next_left, on_error_left,
-                                   on_completed_left)
+        ld = left_source.unsafe_subscribe(on_next_left, on_error_left,
+                                   on_completed_left, scheduler=scheduler)
         left_subscription.disposable = ld
 
         def on_next_right(value):
@@ -73,8 +73,8 @@ def amb(self, right_source):
             if choice[0] == right_choice:
                 observer.on_completed()
 
-        rd = right_source.subscribe(on_next_right, on_error_right,
-                                    on_completed_right)
+        rd = right_source.unsafe_subscribe(on_next_right, on_error_right,
+                                    on_completed_right, scheduler=scheduler)
         right_subscription.disposable = rd
         return CompositeDisposable(left_subscription, right_subscription)
     return AnonymousObservable(subscribe)

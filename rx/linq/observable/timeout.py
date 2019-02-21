@@ -42,7 +42,7 @@ def timeout(self, duetime, other=None, scheduler=None):
     scheduler_method = None
     source = self
 
-    other = other or Observable.throw_exception(Exception("Timeout"))
+    other = other or Observable.throw_exception("Timeout")
     other = Observable.from_future(other)
 
     scheduler = scheduler or timeout_scheduler
@@ -52,7 +52,7 @@ def timeout(self, duetime, other=None, scheduler=None):
     else:
         scheduler_method = scheduler.schedule_relative
 
-    def subscribe(observer):
+    def subscribe(observer, subscribe_scheduler):
         switched = [False]
         _id = [0]
 
@@ -93,6 +93,6 @@ def timeout(self, duetime, other=None, scheduler=None):
                 _id[0] += 1
                 observer.on_completed()
 
-        original.disposable = source.subscribe(on_next, on_error, on_completed)
+        original.disposable = source.unsafe_subscribe(on_next, on_error, on_completed, scheduler=subscribe_scheduler)
         return CompositeDisposable(subscription, timer)
     return AnonymousObservable(subscribe)

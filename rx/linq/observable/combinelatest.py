@@ -1,3 +1,5 @@
+import sys
+
 from rx.core import Observable, AnonymousObservable
 from rx.disposables import CompositeDisposable, SingleAssignmentDisposable
 from rx.internal import extensionmethod, extensionclassmethod
@@ -52,7 +54,7 @@ def combine_latest(cls, *args):
         args = args[0]
     parent = args[0]
 
-    def subscribe(observer):
+    def subscribe(observer, scheduler):
         n = len(args)
         has_value = [False] * n
         has_value_all = [False]
@@ -66,7 +68,8 @@ def combine_latest(cls, *args):
                 try:
                     res = result_selector(*values)
                 except Exception as ex:
-                    observer.on_error(ex)
+                    exc_tuple = sys.exc_info()
+                    observer.on_error(exc_tuple)
                     return
 
                 observer.on_next(res)
@@ -94,7 +97,7 @@ def combine_latest(cls, *args):
                 with parent.lock:
                     done(i)
 
-            subscriptions[i].disposable = args[i].subscribe(on_next, observer.on_error, on_completed)
+            subscriptions[i].disposable = args[i].unsafe_subscribe(on_next, observer.on_error, on_completed, scheduler=scheduler)
 
         for idx in range(n):
             func(idx)

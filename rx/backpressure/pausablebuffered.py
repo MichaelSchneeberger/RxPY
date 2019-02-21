@@ -1,3 +1,5 @@
+import sys
+
 from rx.core import ObservableBase, Observable, AnonymousObservable
 from rx.internal import extensionmethod
 from rx.subjects import Subject
@@ -25,7 +27,8 @@ def combine_latest_source(source, subject, result_selector):
                 try:
                     res = result_selector(*values)
                 except Exception as ex:
-                    observer.on_error(ex)
+                    exc_tuple = sys.exc_info()
+                    observer.on_error(exc_tuple)
                     return
                 observer.on_next(res)
             if is_done[0] and values[1]:
@@ -106,7 +109,7 @@ class PausableBufferedObservable(ObservableBase):
             self.source,
             self.pauser.distinct_until_changed().start_with(False),
             result_selector
-        ).subscribe(on_next, on_error, on_completed)
+        ).unsafe_subscribe(on_next, on_error, on_completed, scheduler=scheduler)
 
         return subscription
 

@@ -28,7 +28,7 @@ def take(self, count, scheduler=None):
         return Observable.empty(scheduler)
 
     observable = self
-    def subscribe(observer):
+    def subscribe(observer, subscribe_scheduler):
         remaining = [count]
 
         def on_next(value):
@@ -38,5 +38,5 @@ def take(self, count, scheduler=None):
                 if not remaining[0]:
                     observer.on_completed()
 
-        return observable.subscribe(on_next, observer.on_error, observer.on_completed)
+        return observable.unsafe_subscribe(on_next, observer.on_error, observer.on_completed, scheduler=subscribe_scheduler)
     return AnonymousObservable(subscribe)

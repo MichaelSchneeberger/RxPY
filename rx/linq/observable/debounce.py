@@ -1,3 +1,5 @@
+import sys
+
 from rx.core import Observable, AnonymousObservable
 from rx.disposables import CompositeDisposable, \
     SingleAssignmentDisposable, SerialDisposable
@@ -62,7 +64,7 @@ def debounce(self, duetime, scheduler=None):
             has_value[0] = False
             _id[0] += 1
 
-        subscription = source.subscribe(on_next, on_error, on_completed)
+        subscription = source.unsafe_subscribe(on_next, on_error, on_completed, scheduler=scheduler)
         return CompositeDisposable(subscription, cancelable)
     return AnonymousObservable(subscribe)
 
@@ -94,7 +96,8 @@ def throttle_with_selector(self, throttle_duration_selector):
             try:
                 throttle = throttle_duration_selector(x)
             except Exception as e:
-                observer.on_error(e)
+                exc_tuple = sys.exc_info()
+                observer.on_error(exc_tuple)
                 return
 
             has_value[0] = True
@@ -136,6 +139,6 @@ def throttle_with_selector(self, throttle_duration_selector):
             has_value[0] = False
             _id[0] += 1
 
-        subscription = source.subscribe(on_next, on_error, on_completed)
+        subscription = source.unsafe_subscribe(on_next, on_error, on_completed, scheduler=scheduler)
         return CompositeDisposable(subscription, cancelable)
     return AnonymousObservable(subscribe)

@@ -1,21 +1,34 @@
+import sys
+
 from rx import Observable, AnonymousObservable
 from rx.internal.exceptions import SequenceContainsNoElementsError
 from rx.internal import extensionmethod
 
-def first_or_default_async(source, has_default=False, default_value=None):
-    def subscribe(observer):
+
+def first_or_default_async(source, has_default=False, default_value=None, raise_exception_func=None):
+    def subscribe(observer, scheduler):
         def on_next(x):
             observer.on_next(x)
             observer.on_completed()
 
         def on_completed():
             if not has_default:
-                observer.on_error(SequenceContainsNoElementsError())
+                def raise_exception(msg=None):
+                    raise SequenceContainsNoElementsError(msg=msg)
+
+                try:
+                    if raise_exception_func is None:
+                        raise_exception()
+                    else:
+                        raise_exception_func(raise_exception)
+                except:
+                    exc_tuple = sys.exc_info()
+                    observer.on_error(exc_tuple)
             else:
                 observer.on_next(default_value)
                 observer.on_completed()
 
-        return source.subscribe(on_next, observer.on_error, on_completed)
+        return source.unsafe_subscribe(on_next, observer.on_error, on_completed, scheduler=scheduler)
     return AnonymousObservable(subscribe)
 
 

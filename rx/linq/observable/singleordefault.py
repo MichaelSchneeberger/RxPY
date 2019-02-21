@@ -1,6 +1,9 @@
+import sys
+
 from rx import Observable, AnonymousObservable
 from rx.internal.exceptions import SequenceContainsNoElementsError
 from rx.internal import extensionmethod
+
 
 def single_or_default_async(source, has_default=False, default_value=None):
     def subscribe(observer):
@@ -9,14 +12,22 @@ def single_or_default_async(source, has_default=False, default_value=None):
 
         def on_next(x):
             if seen_value[0]:
-                observer.on_error(Exception('Sequence contains more than one element'))
+                try:
+                    raise SequenceContainsNoElementsError()
+                except:
+                    exc_tuple = sys.exc_info()
+                    observer.on_error(exc_tuple)
             else:
                 value[0] = x
                 seen_value[0] = True
 
         def on_completed():
             if not seen_value[0] and not has_default:
-                observer.on_error(SequenceContainsNoElementsError())
+                try:
+                    raise SequenceContainsNoElementsError()
+                except:
+                    exc_tuple = sys.exc_info()
+                    observer.on_error(exc_tuple)
             else:
                 observer.on_next(value[0])
                 observer.on_completed()

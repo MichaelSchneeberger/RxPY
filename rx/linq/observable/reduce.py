@@ -27,6 +27,6 @@ def reduce(self, accumulator, seed=None):
     """
 
     if seed is not None:
-        return self.scan(accumulator, seed=seed).start_with(seed).last()
+        return self.scan(accumulator, seed=seed).last_or_default(default_value=seed)
     else:
         return self.scan(accumulator).last()

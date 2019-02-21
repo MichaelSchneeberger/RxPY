@@ -1,3 +1,5 @@
+import sys
+
 from rx.core import Observable, AnonymousObservable
 from rx.concurrency import timeout_scheduler
 from rx.disposables import MultipleAssignmentDisposable
@@ -56,7 +58,8 @@ def generate_with_relative_time(cls, initial_state, condition, iterate,
                     time[0] = time_selector(state[0])
 
             except Exception as e:
-                observer.on_error(e)
+                exc_tuple = sys.exc_info()
+                observer.on_error(exc_tuple)
                 return
 
             if has_result[0]:

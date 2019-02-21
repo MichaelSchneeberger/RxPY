@@ -3,6 +3,7 @@ from datetime import timedelta
 
 from rx import config
 from rx.core import Observer, ObservableBase
+from rx.disposables import CompositeDisposable
 from rx.internal import DisposedException
 from rx.concurrency import current_thread_scheduler
 from rx.core.scheduledobserver import ScheduledObserver
@@ -53,25 +54,30 @@ class ReplaySubject(ObservableBase, Observer):
         if self.is_disposed:
             raise DisposedException()
 
-    def _subscribe_core(self, observer):
+    def _subscribe_core(self, observer, scheduler):
+        subscribe_scheduler = scheduler
         so = ScheduledObserver(self.scheduler, observer)
         subscription = RemovableDisposable(self, so)
 
-        with self.lock:
-            self.check_disposed()
-            self._trim(self.scheduler.now)
-            self.observers.append(so)
+        def action(_, __):
 
-            for item in self.queue:
-                so.on_next(item['value'])
+            with self.lock:
+                self.check_disposed()
+                self._trim(self.scheduler.now)
+                self.observers.append(so)
 
-            if self.has_error:
-                so.on_error(self.error)
-            elif self.is_stopped:
-                so.on_completed()
+                for item in self.queue:
+                    so.on_next(item['value'])
 
-        so.ensure_active()
-        return subscription
+                if self.has_error:
+                    so.on_error(self.error)
+                elif self.is_stopped:
+                    so.on_completed()
+
+            so.ensure_active()
+        disposable = subscribe_scheduler.schedule(action)
+
+        return CompositeDisposable(subscription, disposable)
 
     def _trim(self, now):
         while len(self.queue) > self.buffer_size:

@@ -1,3 +1,5 @@
+import sys
+
 from .activeplan import ActivePlan
 from .joinobserver import JoinObserver
 
@@ -16,7 +18,8 @@ class Plan(object):
             try:
                 result = self.selector(*args)
             except Exception as e:
-                observer.on_error(e)
+                exc_tuple = sys.exc_info()
+                observer.on_error(exc_tuple)
                 return
             observer.on_next(result)
 

@@ -40,7 +40,7 @@ def buffer_with_count(self, count, skip=None):
     if skip is None:
         skip = count
 
-    def selector(x):
+    def selector(x, idx):
         return x.to_iterable()
 
     def predicate(x):

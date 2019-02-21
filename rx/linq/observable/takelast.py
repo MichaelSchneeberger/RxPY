@@ -27,7 +27,7 @@ def take_last(self, count):
 
     source = self
 
-    def subscribe(observer):
+    def subscribe(observer, scheduler):
         q = []
         def on_next(x):
             q.append(x)
@@ -39,5 +39,5 @@ def take_last(self, count):
                 observer.on_next(q.pop(0))
             observer.on_completed()
 
-        return source.subscribe(on_next, observer.on_error, on_completed)
+        return source.unsafe_subscribe(on_next, observer.on_error, on_completed, scheduler=scheduler)
     return AnonymousObservable(subscribe)

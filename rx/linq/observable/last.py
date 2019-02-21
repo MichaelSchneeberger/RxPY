@@ -5,7 +5,7 @@ from .lastordefault import last_or_default_async
 
 
 @extensionmethod(Observable)
-def last(self, predicate=None):
+def last(self, predicate=None, raise_exception_func=None):
     """Returns the last element of an observable sequence that satisfies the
     condition in the predicate if specified, else the last element.
 
@@ -21,4 +21,9 @@ def last(self, predicate=None):
     observable sequence that satisfies the condition in the predicate.
     """
 
-    return self.filter(predicate).last() if predicate else last_or_default_async(self, False)
+    if predicate is not None:
+        return_obs = self.filter(predicate).last(raise_exception_func=raise_exception_func)
+    else:
+        return_obs = last_or_default_async(self, False, raise_exception_func=raise_exception_func)
+
+    return return_obs

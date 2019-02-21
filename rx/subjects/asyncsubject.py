@@ -1,3 +1,8 @@
+import sys
+from typing import Generic
+
+from rx.core.typing import A
+
 from rx import config
 from rx.core import Observer, ObservableBase, Disposable
 from rx.internal import DisposedException
@@ -5,7 +10,7 @@ from rx.internal import DisposedException
 from .innersubscription import InnerSubscription
 
 
-class AsyncSubject(ObservableBase, Observer):
+class AsyncSubject(ObservableBase, Observer, Generic[A]):
     """Represents the result of an asynchronous operation. The last value
     before the on_completed notification, or the error received through
     on_error, is sent to all subscribed observers."""
@@ -29,26 +34,28 @@ class AsyncSubject(ObservableBase, Observer):
         if self.is_disposed:
             raise DisposedException()
 
-    def _subscribe_core(self, observer):
-        with self.lock:
-            self.check_disposed()
-            if not self.is_stopped:
-                self.observers.append(observer)
-                return InnerSubscription(self, observer)
+    def _subscribe_core(self, observer, scheduler):
+        def action(_, __):
+            with self.lock:
+                self.check_disposed()
+                if not self.is_stopped:
+                    self.observers.append(observer)
+                    return InnerSubscription(self, observer)
 
-            ex = self.exception
-            hv = self.has_value
-            v = self.value
+                ex = self.exception
+                hv = self.has_value
+                v = self.value
 
-        if ex:
-            observer.on_error(ex)
-        elif hv:
-            observer.on_next(v)
-            observer.on_completed()
-        else:
-            observer.on_completed()
+            if ex:
+                observer.on_error(ex)
+            elif hv:
+                observer.on_next(v)
+                observer.on_completed()
+            else:
+                observer.on_completed()
 
-        return Disposable.empty()
+        disposable = scheduler.schedule(action)
+        return disposable
 
     def on_completed(self):
         value = None

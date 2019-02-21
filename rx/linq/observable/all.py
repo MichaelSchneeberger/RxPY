@@ -17,4 +17,4 @@ def all(self, predicate):
     specified predicate.
     """
 
-    return self.filter(lambda v: not predicate(v)).some().map(lambda b: not b)
+    return self.filter(lambda v, _: not predicate(v)).some().map(lambda b, _: not b)

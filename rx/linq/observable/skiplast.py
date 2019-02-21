@@ -22,7 +22,7 @@ def skip_last(self, count):
 
     source = self
 
-    def subscribe(observer):
+    def subscribe(observer, scheduler):
         q = []
 
         def on_next(x):
@@ -35,7 +35,7 @@ def skip_last(self, count):
             if not front is None:
                 observer.on_next(front)
 
-        return source.subscribe(on_next, observer.on_error, 
-                                observer.on_completed)
+        return source.unsafe_subscribe(on_next, observer.on_error,
+                                observer.on_completed, scheduler=scheduler)
     return AnonymousObservable(subscribe)
 

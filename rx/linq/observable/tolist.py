@@ -1,4 +1,7 @@
+from rx import AnonymousObservable
+from rx.core import Observer, Disposable
 from rx.core import Observable
+from rx.disposables import CompositeDisposable
 from rx.internal import extensionmethod
 
 
@@ -9,24 +12,23 @@ def to_list(self):
     Returns an observable sequence containing a single element with a list
     containing all the elements of the source sequence."""
 
-    def accumulator(res, i):
-        res = res[:]
-        res.append(i)
-        return res
+    def subscribe(observer, scheduler):
+        buffer = [[]]
 
-    return self.scan(accumulator, seed=[]).start_with([]).last()
+        class FastListObserver(Observer):
+            def on_next(self, value):
+                buffer[0].append(value)
 
+            def on_error(self, error):
+                observer.on_error(error)
 
-@extensionmethod(Observable)
-def to_sorted_list(self, key_selector=None, reverse=False):
-    """
-    Creates a sorted list from an observable sequence,
-    with an optional key_selector used to map the attribute for sorting
+            def on_completed(self):
+                observer.on_next(buffer[0])
+                observer.on_completed()
 
-    Returns an observable sequence containing a single element with a list
-    containing all the sorted elements of the source sequence."""
+        def dispose_buffer():
+            del buffer[0]
 
-    if key_selector:
-        return self.to_list().do_action(on_next=lambda l: l.sort(key=key_selector, reverse=reverse))
-    else:
-        return self.to_list().do_action(lambda l: l.sort(reverse=reverse))
+        disposable = self.unsafe_subscribe(FastListObserver(), scheduler=scheduler)
+        return CompositeDisposable(disposable, Disposable.create(dispose_buffer))
+    return AnonymousObservable(subscribe)

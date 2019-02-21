@@ -14,7 +14,7 @@ def materialize(self):
 
     source = self
 
-    def subscribe(observer):
+    def subscribe(observer, scheduler):
         def on_next(value):
             observer.on_next(OnNext(value))
 
@@ -26,6 +26,6 @@ def materialize(self):
             observer.on_next(OnCompleted())
             observer.on_completed()
 
-        return source.subscribe(on_next, on_error, on_completed)
+        return source.unsafe_subscribe(on_next, on_error, on_completed, scheduler=scheduler)
     return AnonymousObservable(subscribe)
 

@@ -19,7 +19,7 @@ def skip_until(self, other):
     source = self
     other = Observable.from_future(other)
 
-    def subscribe(observer):
+    def subscribe(observer, scheduler):
         is_open = [False]
 
         def on_next(left):
@@ -30,7 +30,7 @@ def skip_until(self, other):
             if is_open[0]:
                 observer.on_completed()
 
-        subs = source.subscribe(on_next, observer.on_error, on_completed)
+        subs = source.unsafe_subscribe(on_next, observer.on_error, on_completed, scheduler=scheduler)
         disposables = CompositeDisposable(subs)
 
         right_subscription = SingleAssignmentDisposable()
@@ -43,7 +43,7 @@ def skip_until(self, other):
         def on_completed2():
             right_subscription.dispose()
 
-        right_subscription.disposable = other.subscribe(on_next2, observer.on_error, on_completed2)
+        right_subscription.disposable = other.unsafe_subscribe(on_next2, observer.on_error, on_completed2, scheduler=scheduler)
 
         return disposables
     return AnonymousObservable(subscribe)

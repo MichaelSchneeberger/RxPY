@@ -13,9 +13,9 @@ def dematerialize(self):
 
     source = self
 
-    def subscribe(observer):
+    def subscribe(observer, scheduler):
         def on_next(value):
             return value.accept(observer)
 
-        return source.subscribe(on_next, observer.on_error, observer.on_completed)
+        return source.unsafe_subscribe(on_next, observer.on_error, observer.on_completed, scheduler=scheduler)
     return AnonymousObservable(subscribe)

@@ -25,7 +25,7 @@ def time_interval(self, scheduler=None):
     def defer():
         last = [scheduler.now]
 
-        def selector(x):
+        def selector(x, _):
             now = scheduler.now
             span = now - last[0]
             last[0] = now

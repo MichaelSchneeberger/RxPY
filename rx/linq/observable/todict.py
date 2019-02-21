@@ -1,3 +1,5 @@
+import sys
+
 from rx import Observable, AnonymousObservable
 from rx.internal import extensionmethod
 
@@ -9,7 +11,8 @@ def _to_dict(source, map_type, key_selector, element_selector):
             try:
                 key = key_selector(x)
             except Exception as ex:
-                observer.on_error(ex)
+                exc_tuple = sys.exc_info()
+                observer.on_error(exc_tuple)
                 return
 
             element = x
@@ -17,7 +20,8 @@ def _to_dict(source, map_type, key_selector, element_selector):
                 try:
                     element = element_selector(x)
                 except Exception as ex:
-                    observer.on_error(ex)
+                    exc_tuple = sys.exc_info()
+                    observer.on_error(exc_tuple)
                     return
 
             m[key] = element

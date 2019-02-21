@@ -21,14 +21,14 @@ def take_until(self, other):
     source = self
     other = Observable.from_future(other)
 
-    def subscribe(observer):
+    def subscribe(observer, scheduler):
 
         def on_completed(x):
             observer.on_completed()
 
         return CompositeDisposable(
             source.subscribe(observer),
-            other.subscribe(on_completed, observer.on_error, noop)
+            other.unsafe_subscribe(on_completed, observer.on_error, noop, scheduler=scheduler)
         )
     return AnonymousObservable(subscribe)
 

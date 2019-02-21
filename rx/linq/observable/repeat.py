@@ -56,7 +56,6 @@ def repeat(cls, value=None, repeat_count=None, scheduler=None):
     Returns an observable sequence that repeats the given element the
     specified number of times."""
 
-    scheduler = scheduler or current_thread_scheduler
     if repeat_count == -1:
         repeat_count = None
 

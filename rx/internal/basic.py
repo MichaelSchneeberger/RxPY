@@ -28,8 +28,11 @@ def default_key_serializer(x):
     return str(x)
 
 
-def default_error(err):
-    if isinstance(err, BaseException):
-        raise err
+def default_error(exc):
+    if isinstance(exc, tuple):
+        exc_type, exc_value, exc_traceback = exc
+        if exc_value is None:
+            print(exc)
+        raise exc_value.with_traceback(exc_traceback)
     else:
-        raise Exception(err)
+        raise exc

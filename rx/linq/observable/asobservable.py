@@ -13,7 +13,7 @@ def as_observable(self):
 
     source = self
 
-    def subscribe(observer):
-        return source.subscribe(observer)
+    def subscribe(observer, scheduler):
+        return source.unsafe_subscribe(observer, scheduler=scheduler)
 
     return AnonymousObservable(subscribe)

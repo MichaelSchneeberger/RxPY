@@ -1,3 +1,7 @@
+from typing import Generic
+
+from rx.core.typing import A
+
 from rx import config
 from rx.core import Observer, ObservableBase, Disposable
 from rx.internal import DisposedException
@@ -6,7 +10,7 @@ from .anonymoussubject import AnonymousSubject
 from .innersubscription import InnerSubscription
 
 
-class Subject(ObservableBase, Observer):
+class Subject(ObservableBase, Observer, Generic[A]):
     """Represents an object that is both an observable sequence as well as an
     observer. Each notification is broadcasted to all subscribed observers.
     """
@@ -25,7 +29,7 @@ class Subject(ObservableBase, Observer):
         if self.is_disposed:
             raise DisposedException()
 
-    def _subscribe_core(self, observer):
+    def _subscribe_core(self, observer, scheduler):
         with self.lock:
             self.check_disposed()
             if not self.is_stopped:

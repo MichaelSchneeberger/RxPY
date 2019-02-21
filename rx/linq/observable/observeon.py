@@ -21,7 +21,7 @@ def observe_on(self, scheduler):
 
     source = self
 
-    def subscribe(observer):
-        return source.subscribe(ObserveOnObserver(scheduler, observer))
+    def subscribe(observer, subscribe_scheduler):
+        return source.unsafe_subscribe(ObserveOnObserver(scheduler, observer), scheduler=subscribe_scheduler)
 
     return AnonymousObservable(subscribe)

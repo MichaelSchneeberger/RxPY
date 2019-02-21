@@ -1,10 +1,12 @@
+import sys
+
 from rx import Observable, AnonymousObservable
 from rx.internal.utils import adapt_call
 from rx.internal import extensionmethod
 
 
-@extensionmethod(Observable, alias="map")
-def select(self, selector):
+@extensionmethod(Observable, alias="select")
+def map(self, selector):
     """Project each element of an observable sequence into a new form
     by incorporating the element's index.
 
@@ -23,18 +25,19 @@ def select(self, selector):
 
     selector = adapt_call(selector)
 
-    def subscribe(observer):
+    def subscribe(observer, scheduler):
         count = [0]
 
         def on_next(value):
             try:
                 result = selector(value, count[0])
             except Exception as err:
-                observer.on_error(err)
+                exc_tuple = sys.exc_info()
+                observer.on_error(exc_tuple)
             else:
                 count[0] += 1
                 observer.on_next(result)
 
-        return self.subscribe(on_next, observer.on_error, observer.on_completed)
+        return self.unsafe_subscribe(on_next, observer.on_error, observer.on_completed, scheduler=scheduler)
 
     return AnonymousObservable(subscribe)

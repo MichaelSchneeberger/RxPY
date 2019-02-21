@@ -1,3 +1,5 @@
+import sys
+
 from rx.core import Observable, AnonymousObservable
 from rx.internal.basic import identity, default_comparer
 from rx.internal import extensionmethod
@@ -55,7 +57,8 @@ def distinct(self, key_selector=None, comparer=None):
                 try:
                     key = key_selector(x)
                 except Exception as ex:
-                    observer.on_error(ex)
+                    exc_tuple = sys.exc_info()
+                    observer.on_error(exc_tuple)
                     return
 
             hashset.push(key) and observer.on_next(x)

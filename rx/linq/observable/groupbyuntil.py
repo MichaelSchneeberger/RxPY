@@ -1,3 +1,4 @@
+import sys
 from collections import OrderedDict
 
 from rx import Observable, AnonymousObservable
@@ -54,7 +55,7 @@ def group_by_until(self, key_selector, element_selector, duration_selector,
     element_selector = element_selector or identity
     comparer = comparer or default_comparer
 
-    def subscribe(observer):
+    def subscribe(observer, scheduler):
         mapping = OrderedDict()
         group_disposable = CompositeDisposable()
         ref_count_disposable = RefCountDisposable(group_disposable)
@@ -66,10 +67,12 @@ def group_by_until(self, key_selector, element_selector, duration_selector,
             try:
                 key = key_selector(x)
             except Exception as e:
-                for w in mapping.values():
-                    w.on_error(e)
+                exc_tuple = sys.exc_info()
 
-                observer.on_error(e)
+                for w in mapping.values():
+                    w.on_error(exc_tuple)
+
+                observer.on_error(exc_tuple)
                 return
 
             fire_new_map_entry = False
@@ -85,10 +88,12 @@ def group_by_until(self, key_selector, element_selector, duration_selector,
                 try:
                     duration = duration_selector(duration_group)
                 except Exception as e:
-                    for w in mapping.values():
-                        w.on_error(e)
+                    exc_tuple = sys.exc_info()
 
-                    observer.on_error(e)
+                    for w in mapping.values():
+                        w.on_error(exc_tuple)
+
+                    observer.on_error(exc_tuple)
                     return
 
                 observer.on_next(group)
@@ -113,20 +118,23 @@ def group_by_until(self, key_selector, element_selector, duration_selector,
                 def on_completed():
                     expire()
 
-                md.disposable = duration.take(1).subscribe(on_next, on_error, on_completed)
+                md.disposable = duration.take(1).unsafe_subscribe(on_next, on_error, on_completed, scheduler=scheduler)
 
             try:
                 element = element_selector(x)
             except Exception as e:
-                for w in mapping.values():
-                    w.on_error(e)
+                exc_tuple = sys.exc_info()
 
-                observer.on_error(e)
+                for w in mapping.values():
+                    w.on_error(exc_tuple)
+
+                observer.on_error(exc_tuple)
                 return
 
             writer.on_next(element)
 
         def on_error(ex):
+
             for w in mapping.values():
                 w.on_error(ex)
 
@@ -138,6 +146,6 @@ def group_by_until(self, key_selector, element_selector, duration_selector,
 
             observer.on_completed()
 
-        group_disposable.add(source.subscribe(on_next, on_error, on_completed))
+        group_disposable.add(source.unsafe_subscribe(on_next, on_error, on_completed, scheduler=scheduler))
         return ref_count_disposable
     return AnonymousObservable(subscribe)

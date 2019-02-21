@@ -1,3 +1,5 @@
+import sys
+
 from rx.core import Observable, AnonymousObservable
 from rx.internal.basic import identity, default_comparer
 from rx.internal import extensionmethod
@@ -35,14 +37,16 @@ def distinct_until_changed(self, key_selector=None, comparer=None):
             try:
                 key = key_selector(value)
             except Exception as exception:
-                observer.on_error(exception)
+                exc_tuple = sys.exc_info()
+                observer.on_error(exc_tuple)
                 return
 
             if has_current_key[0]:
                 try:
                     comparer_equals = comparer(current_key[0], key)
                 except Exception as exception:
-                    observer.on_error(exception)
+                    exc_tuple = sys.exc_info()
+                    observer.on_error(exc_tuple)
                     return
 
             if not has_current_key[0] or not comparer_equals:

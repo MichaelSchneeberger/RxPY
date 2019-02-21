@@ -1,13 +1,15 @@
+import sys
+
 from rx.core import Observable, AnonymousObservable, Disposable
 from rx.disposables import SingleAssignmentDisposable, \
     CompositeDisposable, SerialDisposable
-from rx.concurrency import current_thread_scheduler
+from rx.concurrency import current_thread_scheduler, CurrentThreadScheduler
 from rx.internal import Enumerable
 from rx.internal import extensionmethod, extensionclassmethod
 
 
 def catch_handler(source, handler):
-    def subscribe(observer):
+    def subscribe(observer, scheduler):
         d1 = SingleAssignmentDisposable()
         subscription = SerialDisposable()
 
@@ -17,7 +19,8 @@ def catch_handler(source, handler):
             try:
                 result = handler(exception)
             except Exception as ex:
-                observer.on_error(ex)
+                exc_tuple = sys.exc_info()
+                observer.on_error(exc_tuple)
                 return
 
             result = Observable.from_future(result)
@@ -25,10 +28,11 @@ def catch_handler(source, handler):
             subscription.disposable = d
             d.disposable = result.subscribe(observer)
 
-        d1.disposable = source.subscribe(
+        d1.disposable = source.unsafe_subscribe(
             observer.on_next,
             on_error,
-            observer.on_completed
+            observer.on_completed,
+            scheduler=scheduler
         )
         return subscription
     return AnonymousObservable(subscribe)
@@ -71,24 +75,24 @@ def catch_exception(cls, *args):
     source sequences until a source sequence terminates successfully.
     """
 
-    scheduler = current_thread_scheduler
-
     if isinstance(args[0], list) or isinstance(args[0], Enumerable):
         sources = args[0]
     else:
         sources = list(args)
 
-    def subscribe(observer):
+    def subscribe(observer, subscribe_scheduler):
         subscription = SerialDisposable()
         cancelable = SerialDisposable()
         last_exception = [None]
         is_disposed = []
         e = iter(sources)
 
-        def action(action1, state=None):
+        def subscribe_next(scheduler):
             def on_error(exn):
                 last_exception[0] = exn
-                cancelable.disposable = scheduler.schedule(action)
+                scheduler = CurrentThreadScheduler()
+                # scheduler = scheduler
+                subscribe_next(scheduler=scheduler)
 
             if is_disposed:
                 return
@@ -101,13 +105,15 @@ def catch_exception(cls, *args):
                 else:
                     observer.on_completed()
             except Exception as ex:
-                observer.on_error(ex)
+                exc_tuple = sys.exc_info()
+                observer.on_error(exc_tuple)
             else:
                 d = SingleAssignmentDisposable()
                 subscription.disposable = d
-                d.disposable = current.subscribe(observer.on_next, on_error, observer.on_completed)
+                d.disposable = current.unsafe_subscribe(observer.on_next, on_error, observer.on_completed,
+                                                        scheduler=scheduler)
 
-        cancelable.disposable = scheduler.schedule(action)
+        subscribe_next(scheduler=subscribe_scheduler)
 
         def dispose():
             is_disposed.append(True)

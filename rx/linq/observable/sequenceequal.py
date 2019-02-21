@@ -1,3 +1,5 @@
+import sys
+
 import collections
 
 from rx import AnonymousObservable, Observable
@@ -44,7 +46,8 @@ def sequence_equal(self, second, comparer=None):
                 try:
                     equal = comparer(v, x)
                 except Exception as e:
-                    observer.on_error(e)
+                    exc_tuple = sys.exc_info()
+                    observer.on_error(exc_tuple)
                     return
 
                 if not equal:
@@ -73,7 +76,8 @@ def sequence_equal(self, second, comparer=None):
                 try:
                     equal = comparer(v, x)
                 except Exception as exception:
-                    observer.on_error(exception)
+                    exc_tuple = sys.exc_info()
+                    observer.on_error(exc_tuple)
                     return
 
                 if not equal:

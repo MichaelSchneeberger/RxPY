@@ -2,7 +2,8 @@ import types
 from abc import abstractmethod
 
 from rx import config
-from rx.concurrency import current_thread_scheduler
+from rx.concurrency import CurrentThreadScheduler
+from rx.disposables import SingleAssignmentDisposable
 
 from . import Observer, Observable, Disposable
 from .anonymousobserver import AnonymousObserver
@@ -19,7 +20,19 @@ class ObservableBase(Observable):
         for name, method in self._methods:
             setattr(self, name, types.MethodType(method, self))
 
-    def subscribe(self, on_next=None, on_error=None, on_completed=None, observer=None):
+    def subscribe(self, on_next=None, on_error=None, on_completed=None, observer=None, scheduler=None):
+        single_assignment_disposable = SingleAssignmentDisposable()
+
+        def action(_, __):
+            disposable = self.unsafe_subscribe(on_next=on_next, on_error=on_error, on_completed=on_completed,
+                                         observer=observer, scheduler=scheduler)
+            single_assignment_disposable.disposable = disposable
+
+        scheduler = scheduler or CurrentThreadScheduler()
+        scheduler.schedule(action)
+        return single_assignment_disposable
+
+    def unsafe_subscribe(self, on_next=None, on_error=None, on_completed=None, observer=None, scheduler=None):
         """Subscribe an observer to the observable sequence.
 
         Examples:
@@ -53,40 +66,20 @@ class ObservableBase(Observable):
 
         auto_detach_observer = AutoDetachObserver(observer)
 
-        def fix_subscriber(subscriber):
-            """Fixes subscriber to make sure it returns a Disposable instead
-            of None or a dispose function"""
-
+        try:
+            subscriber = self._subscribe_core(auto_detach_observer, scheduler=scheduler)
+        except Exception as ex:
+            if not auto_detach_observer.fail(ex):
+                raise
+        else:
             if not hasattr(subscriber, "dispose"):
                 subscriber = Disposable.create(subscriber)
 
-            return subscriber
-
-        def set_disposable(scheduler=None, value=None):
-            try:
-                subscriber = self._subscribe_core(auto_detach_observer)
-            except Exception as ex:
-                if not auto_detach_observer.fail(ex):
-                    raise
-            else:
-                auto_detach_observer.disposable = fix_subscriber(subscriber)
-
-        # Subscribe needs to set up the trampoline before for subscribing.
-        # Actually, the first call to Subscribe creates the trampoline so
-        # that it may assign its disposable before any observer executes
-        # OnNext over the CurrentThreadScheduler. This enables single-
-        # threaded cancellation
-        # https://social.msdn.microsoft.com/Forums/en-US/eb82f593-9684-4e27-
-        # 97b9-8b8886da5c33/whats-the-rationale-behind-how-currentthreadsche
-        # dulerschedulerequired-behaves?forum=rx
-        if current_thread_scheduler.schedule_required():
-            current_thread_scheduler.schedule(set_disposable)
-        else:
-            set_disposable()
+            auto_detach_observer.disposable =  subscriber
 
         # Hide the identity of the auto detach observer
         return Disposable.create(auto_detach_observer.dispose)
 
     @abstractmethod
-    def _subscribe_core(self, observer):
+    def _subscribe_core(self, observer, scheduler):
         return NotImplemented

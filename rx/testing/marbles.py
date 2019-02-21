@@ -129,7 +129,7 @@ def to_marbles(self, scheduler=None):
             observer.on_next("".join(n for n in result))
             observer.on_completed()
 
-        return source.subscribe(on_next, on_error, on_completed)
+        return source.unsafe_subscribe(on_next, on_error, on_completed, scheduler=scheduler)
     return AnonymousObservable(subscribe)
 
 

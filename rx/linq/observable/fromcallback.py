@@ -1,3 +1,5 @@
+import sys
+
 from rx.core import Observable, AnonymousObservable
 from rx.internal import extensionclassmethod
 
@@ -27,7 +29,8 @@ def from_callback(cls, func, selector=None):
                     try:
                         results = selector(args)
                     except Exception as err:
-                        observer.on_error(err)
+                        exc_tuple = sys.exc_info()
+                        observer.on_error(exc_tuple)
                         return
 
                     observer.on_next(results)

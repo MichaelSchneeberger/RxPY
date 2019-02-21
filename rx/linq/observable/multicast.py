@@ -35,9 +35,9 @@ def multicast(self, subject=None, subject_selector=None, selector=None):
 
     source = self
     if subject_selector:
-        def subscribe(observer):
+        def subscribe(observer, scheduler):
             connectable = source.multicast(subject=subject_selector())
-            return CompositeDisposable(selector(connectable).subscribe(observer), connectable.connect())
+            return CompositeDisposable(selector(connectable).unsafe_subscribe(observer, scheduler=scheduler), connectable.connect())
 
         return AnonymousObservable(subscribe)
     else:

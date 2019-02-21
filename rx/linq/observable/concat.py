@@ -1,3 +1,5 @@
+import sys
+
 from rx.core import Observable, AnonymousObservable, Disposable
 from rx.disposables import SingleAssignmentDisposable, CompositeDisposable, SerialDisposable
 from rx.concurrency import CurrentThreadScheduler
@@ -68,14 +70,12 @@ def concat(cls, *args):
     sequence, in sequential order.
     """
 
-    scheduler = CurrentThreadScheduler()
-
     if isinstance(args[0], list) or isinstance(args[0], Enumerable):
         sources = args[0]
     else:
         sources = list(args)
 
-    def subscribe(observer):
+    def subscribe(observer, scheduler):
         subscription = SerialDisposable()
         cancelable = SerialDisposable()
         enum = iter(sources)
@@ -86,14 +86,17 @@ def concat(cls, *args):
                 return
 
             def on_completed():
-                cancelable.disposable = scheduler.schedule(action)
+                # inner_scheduler = CurrentThreadScheduler()
+                inner_scheduler = scheduler
+                cancelable.disposable = inner_scheduler.schedule(action)
 
             try:
                 current = next(enum)
             except StopIteration:
                 observer.on_completed()
             except Exception as ex:
-                observer.on_error(ex)
+                exc_tuple = sys.exc_info()
+                observer.on_error(exc_tuple)
             else:
                 d = SingleAssignmentDisposable()
                 subscription.disposable = d
@@ -117,4 +120,47 @@ def concat_all(self):
     observed inner sequence, in sequential order.
     """
 
-    return self.merge(1)
+    max_concurrent = 1
+    sources = self
+
+    def subscribe(observer, subscribe_scheduler):
+        group = CompositeDisposable()
+        active_count = [0]
+        is_stopped = [False]
+        q = []
+
+        def subscribe(xs):
+            inner_subscription = SingleAssignmentDisposable()
+            group.add(inner_subscription)
+
+            def on_completed():
+                group.remove(inner_subscription)
+                if len(q):
+                    s = q.pop(0)
+                    subscribe(s)
+                else:
+                    active_count[0] -= 1
+                    if is_stopped[0] and active_count[0] == 0:
+                        observer.on_completed()
+
+            disposable = xs.subscribe(observer.on_next, observer.on_error,
+                                      on_completed, scheduler=subscribe_scheduler)
+            inner_subscription.disposable = disposable
+
+        def on_next(inner_source):
+            if active_count[0] < max_concurrent:
+                active_count[0] += 1
+                subscribe(inner_source)
+            else:
+                q.append(inner_source)
+
+        def on_completed():
+            is_stopped[0] = True
+            if active_count[0] == 0:
+                observer.on_completed()
+
+        group.add(sources.unsafe_subscribe(on_next, observer.on_error, on_completed,
+                                           scheduler=subscribe_scheduler))
+        return group
+
+    return AnonymousObservable(subscribe)

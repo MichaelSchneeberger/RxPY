@@ -21,13 +21,13 @@ def some(self, predicate=None):
     """
 
     source = self
-    def subscribe(observer):
+    def subscribe(observer, scheduler):
         def on_next(_):
             observer.on_next(True)
             observer.on_completed()
         def on_error():
             observer.on_next(False)
             observer.on_completed()
-        return source.subscribe(on_next, observer.on_error, on_error)
+        return source.unsafe_subscribe(on_next, observer.on_error, on_error, scheduler=scheduler)
 
     return source.filter(predicate).some() if predicate else AnonymousObservable(subscribe)

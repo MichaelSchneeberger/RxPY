@@ -4,7 +4,7 @@ from rx.internal import extensionmethod
 
 
 @extensionmethod(Observable)
-def replay(self, selector, buffer_size=None, window=None, scheduler=None):
+def replay(self, selector=None, buffer_size=None, window=None, scheduler=None):
     """Returns an observable sequence that is the result of invoking the
     selector on a connectable observable sequence that shares a single
     subscription to the underlying sequence replaying notifications subject

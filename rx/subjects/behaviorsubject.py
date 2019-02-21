@@ -35,23 +35,25 @@ class BehaviorSubject(ObservableBase, Observer):
         if self.is_disposed:
             raise DisposedException()
 
-    def _subscribe_core(self, observer):
+    def _subscribe_core(self, observer, scheduler):
         ex = None
 
-        with self.lock:
-            self.check_disposed()
-            if not self.is_stopped:
-                self.observers.append(observer)
-                observer.on_next(self.value)
-                return InnerSubscription(self, observer)
-            ex = self.exception
+        def action(_, __):
+            with self.lock:
+                self.check_disposed()
+                if not self.is_stopped:
+                    self.observers.append(observer)
+                    observer.on_next(self.value)
+                    return InnerSubscription(self, observer)
+                ex = self.exception
 
-        if ex:
-            observer.on_error(ex)
-        else:
-            observer.on_completed()
+            if ex:
+                observer.on_error(ex)
+            else:
+                observer.on_completed()
 
-        return Disposable.empty()
+        disposable = scheduler.schedule(action)
+        return disposable
 
     def on_completed(self):
         """Notifies all subscribed observers of the end of the sequence."""

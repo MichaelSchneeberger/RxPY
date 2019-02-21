@@ -1,4 +1,5 @@
 import logging
+import sys
 
 from rx import AnonymousObservable, Observable
 from rx.internal.utils import add_ref
@@ -98,14 +99,15 @@ def observable_window_with_closing_selector(self, window_closing_selector):
             window[0].on_completed()
             observer.on_completed()
 
-        d.add(source.subscribe(on_next, on_error, on_completed))
+        d.add(source.unsafe_subscribe(on_next, on_error, on_completed, scheduler=scheduler))
 
         def create_window_close():
             try:
                 window_close = window_closing_selector()
             except Exception as exception:
                 log.error("*** Exception: %s" % exception)
-                observer.on_error(exception)
+                exc_tuple = sys.exc_info()
+                observer.on_error(exc_tuple)
                 return
 
             def on_completed():

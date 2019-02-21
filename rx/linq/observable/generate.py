@@ -1,3 +1,5 @@
+import sys
+
 from rx.core import Observable, AnonymousObservable
 from rx.concurrency import current_thread_scheduler
 from rx.disposables import MultipleAssignmentDisposable
@@ -54,7 +56,8 @@ def generate(cls, initial_state, condition, iterate, result_selector, scheduler=
                     result = result_selector(state[0])
 
             except Exception as exception:
-                observer.on_error(exception)
+                exc_tuple = sys.exc_info()
+                observer.on_error(exc_tuple)
                 return
 
             if has_result:

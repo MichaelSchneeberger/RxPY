@@ -48,7 +48,7 @@ def for_each(self, action):
     def on_completed():
         latch.set()
 
-    self.observable.subscribe(on_next, on_error, on_completed)
+    self.observable.unsafe_subscribe(on_next, on_error, on_completed, scheduler=scheduler)
 
     # Block until the subscription completes and then return
     latch.wait()

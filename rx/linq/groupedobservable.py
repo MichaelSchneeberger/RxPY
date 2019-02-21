@@ -8,10 +8,10 @@ class GroupedObservable(ObservableBase):
         super(GroupedObservable, self).__init__()
         self.key = key
 
-        def subscribe(observer):
-            return CompositeDisposable(merged_disposable.disposable, underlying_observable.subscribe(observer))
+        def subscribe(observer, scheduler):
+            return CompositeDisposable(merged_disposable.disposable, underlying_observable.unsafe_subscribe(observer, scheduler))
 
         self.underlying_observable = underlying_observable if not merged_disposable else AnonymousObservable(subscribe)
 
-    def _subscribe_core(self, observer):
-        return self.underlying_observable.subscribe(observer)
+    def _subscribe_core(self, observer, scheduler):
+        return self.underlying_observable.subscribe(observer, scheduler=scheduler)
